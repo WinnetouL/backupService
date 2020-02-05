@@ -1,22 +1,16 @@
 ﻿Write-Host "Setup phase"
 Write-Host "-----------"
-
-do{
-    Write-Host "Which kind of backup do you want to execute (enter 1 or 2)"
-    Write-Host "1: Entire new backup"
-    Write-Host "2: Update an existing backup (incremental)"
-    $updateType = Read-Host
-} while (($updateType -eq "1") -or ($updateType -eq "2"))
-
-
-Switch($Eingabe) {
-    0{$Detail = 'Die Variable ist 0'}
-    1{$Detail = 'Die Variable ist 1'}
-    2{$Detail = 'Die Variable ist 2'}
-    3{$Detail = 'Die Variable ist 3'}
-    4{$Detail = 'Die Variable ist 4'}
+Write-Host "Which kind of backup do you want to execute (enter 1 or 2)"
+Write-Host "1: Entire new backup"
+Write-Host "2: Update an existing backup (incremental)"
+$updateType = Read-Host
+Switch($updateType) {
+    1{$type = 'Die Variable ist 1'}
+    2{$type = 'Die Variable ist 2'}
+    default {Write-Host "exit"; exit}
 }
-$Detail
+$type
+
 # init required variabels
 $saveFolder = New-Object System.Collections.Generic.List[string]
 $destinationFolder
@@ -50,3 +44,17 @@ if ($confirmation -eq "y") {
 }Else {
     Write-Host ""
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+#    Write-Host $updateType.GetType()
