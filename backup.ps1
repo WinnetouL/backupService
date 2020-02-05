@@ -1,10 +1,11 @@
 ﻿Write-Host "Setup phase"
 Write-Host "-----------"
+# choose backup type
 Write-Host "Which kind of backup do you want to execute (enter 1 or 2)"
 Write-Host "1: Entire new backup"
 Write-Host "2: Update an existing backup (incremental)"
-$updateType = Read-Host
-Switch($updateType) {
+$backupType = Read-Host
+Switch($backupType) {
     1{$type = 'Die Variable ist 1'}
     2{$type = 'Die Variable ist 2'}
     default {Write-Host "exit"; exit}
