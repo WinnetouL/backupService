@@ -1,7 +1,6 @@
 ﻿# init required variabels
-$sourVolPath = New-Object System.Collections.Generic.List[string]
+$sourFilePath = New-Object System.Collections.Generic.List[string]
 $destVolPath="NONE"
-
 Write-Host "Setup phase"
 Write-Host "-----------"
 
@@ -16,10 +15,9 @@ if (($backupType -ne "1") -and ($backupType -ne "2")) {
     exit
     }
 
-# selectionbackup location
-$destVolPath="NONE"
+# selection of backup location
 $potentialDestVol = Get-WMIObject win32_volume -Filter "DriveType='2'" | Select-Object -property Label, Name # 2 = Removable
-$potentialDestVolOutput = $potentialDestVol | select -ExpandProperty Label
+$potentialDestVolOutput = @($potentialDestVol | select -ExpandProperty Label) # force to return an System.Object (array)
 do{
     Write-Host "`nDetected Volumes:"
     $_=1
@@ -37,7 +35,7 @@ do{
    $path = Read-Host -prompt "`nEnter path of folder to be backed up (d for done)"
    $addOrNot = checkIfPathExist($path)
    if ($addOrNot) {
-        $sourVolPath.Add($path)
+        $sourFilePath.Add($path)
    }elseif ($path -eq "d") {
         continue
    }Else {
@@ -60,8 +58,8 @@ switch ($backupType){
 2 {"    -> Incremental Backup"}
 }
 Write-Host "`nThe following folders are going to be backed up:"
-for ($i=0; $i -lt $sourVolPath.Count; $i++){
-    Write-Host "    ->"$sourVolPath[$i]
+for ($i=0; $i -lt $sourFilePath.Count; $i++){
+    Write-Host "    ->"$sourFilePath[$i]
 }
 Write-Host "`nSelected destination Volume:"
 Write-Host "    ->" $destVolPath
