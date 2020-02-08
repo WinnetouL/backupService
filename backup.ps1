@@ -77,10 +77,7 @@ if ($backupType -eq "1") {
     makeDir($backupNames[0])
 }elseif ($backupType -eq "2") {
     # get list of subdirs
-    $listOfSourDir = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $sourFilePath.Count; $i++){
-        Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes Directory | % {$listOfSourDir.Add($_.FullName)} # D:\
-        }
+    $listOfSourDir = genListSubDir($sourFilePath)
     # generate a list out of the subdirs but for destination location
     $listOfDestDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
@@ -107,7 +104,7 @@ function checkIfPathExist($path) { # error - when pressing enter
 }
 
 # returns an array with the required paths
-function highestNumDirName($itemList) { # error - when pressing enter
+function highestNumDirName($itemList) {
     $backupNames = New-Object System.Collections.ArrayList
     $highestNumBackup = 0
     for ($i=0; $i -lt $itemList.length; $i++){
@@ -124,8 +121,16 @@ function highestNumDirName($itemList) { # error - when pressing enter
     }
 
 # create directories silently
-function makeDir($path) { # error - when pressing enter
+function makeDir($path) {
     New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
 }
 
+# create directories silently
+function genListSubDir($sourPath) {
+    $listOfDir = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $sourPath.Count; $i++){
+        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$listOfDir.Add($_.FullName)} # D:\
+        }
+    return $listOfDir
+}
 
