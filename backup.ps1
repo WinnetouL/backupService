@@ -26,7 +26,7 @@ do{
         $_++
         }
     $destVolName = Read-Host "Enter your destination volume (name)"
-    $potentialDestVol | % { if( $_.Label -ceq $destVolName){$destVolPath=$_.Name} # % = foreach; -ceq -> case sensitive
+    $potentialDestVol | % {if( $_.Label -ceq $destVolName){$destVolPath=$_.Name} # % = foreach; -ceq -> case sensitive
     }
 } while ($destVolPath -eq "NONE")
 
@@ -43,12 +43,6 @@ do{
    }
 } while (!($path -eq "d"))
 
-# check if variable is a existing path
-function checkIfPathExist($path) { # error - when pressing enter
-    $addOrNot = Test-Path -Path $path
-    return $addOrNot
-}
-
 # confirmation
 Write-Host "`nConfirmation"
 Write-Host "-------------"
@@ -64,8 +58,68 @@ for ($i=0; $i -lt $sourFilePath.Count; $i++){
 Write-Host "`nSelected destination Volume:"
 Write-Host "    ->" $destVolPath
 $confirmation = Read-Host -Prompt "`nWrite 'Yes' to confirm or 'no' to cancel"
-if ($confirmation -ceq "Yes") {
-    continue
-}Else {
+if (!($confirmation -ceq "Yes")) {
     Write-Host "`nCanceled!"
+    exit 
 }
+
+# create an backup environment
+$destVolPath += "BackupEnv\"
+if (!(checkIfPathExist($destVolPath))) {
+    makeDir($destVolPath)
+    Write-Host "Backup Environment created at:" $destVolPath
+}
+
+$itemsBackupEnv = Get-ChildItem -Path $destVolPath -Attributes Directory
+$backupNames = highestNumDirName($itemsBackupEnv)
+if ($backupType -eq "1") {
+    # Write-Host "1 ---" $backupNames[0]
+    makeDir($backupNames[0])
+}elseif ($backupType -eq "2") {
+    # get list of subdirs
+    $listOfSourDir = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $sourFilePath.Count; $i++){
+        Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes Directory | % {$listOfSourDir.Add($_.FullName)} # D:\
+        }
+    foreach ($dir in $listOfSourDir) {
+        Write-Host $dir
+    }
+    for ($i=0; $i -lt $listOfSourDir.Count; $i++){
+        if (!(checkIfPathExist($listOfSourDir[$i]))) {
+            makeDir($listOfSourDir[$i])
+            $_++; Write-Host $_ "-" $listOfSourDir[$i]
+            }Else {
+                Write-Host "nothing created!"
+                }
+        }
+    }
+
+# check if variable is a existing path
+function checkIfPathExist($path) { # error - when pressing enter
+    $addOrNot = Test-Path -Path $path
+    return $addOrNot
+}
+
+# returns an array with the required paths
+function highestNumDirName($itemList) { # error - when pressing enter
+    $backupNames = New-Object System.Collections.ArrayList
+    $highestNumBackup = 0
+    for ($i=0; $i -lt $itemList.length; $i++){
+        if ($highestNumBackup -lt ($itemList[$i].Name -as [int])) {
+            $highestNumBackup = $itemList[$i].Name -as [int]
+            }
+        $secHighestPathBackup = $itemList[$i].FullName # better choose modification date 
+        }
+    $firstHighestNumBackup = $highestNumBackup + 1 | % {"{0:d3}" -f $_}
+    $firstHighestPathBackup = $destVolPath + $firstHighestNumBackup # Join-Path?
+    $backupNames += $firsthighestPathBackup
+    $backupNames += $secHighestPathBackup
+    return $backupNames
+    }
+
+# create directories silently
+function makeDir($path) { # error - when pressing enter
+    mkdir $path | Out-Null # "> $null" would be much faster
+}
+
+
