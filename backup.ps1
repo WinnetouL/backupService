@@ -64,7 +64,7 @@ if (!($confirmation -ceq "Yes")) {
 }
 
 # create an backup environment
-$destVolPath += "BackupEnv\"
+$destVolPath += "BackupEnv"
 if (!(checkIfPathExist($destVolPath))) {
     makeDir($destVolPath)
     Write-Host "Backup Environment created at:" $destVolPath
@@ -81,16 +81,22 @@ if ($backupType -eq "1") {
     for ($i=0; $i -lt $sourFilePath.Count; $i++){
         Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes Directory | % {$listOfSourDir.Add($_.FullName)} # D:\
         }
-    foreach ($dir in $listOfSourDir) {
-        Write-Host $dir
-    }
+    # generate a list out of the subdirs but for destination location
+    $listOfDestDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
-        if (!(checkIfPathExist($listOfSourDir[$i]))) {
-            makeDir($listOfSourDir[$i])
-            $_++; Write-Host $_ "-" $listOfSourDir[$i]
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[1] -ChildPath $_} |  % {$listOfDestDir.Add($_)}
+    }
+    for ($i=0; $i -lt $listOfDestDir.Count; $i++){
+         Write-Host "yikes - "$listOfDestDir[$i]
+    }
+    # create subdir at destination location if it doesn't exist
+    for ($i=0; $i -lt $listOfDestDir.Count; $i++){
+        if (!(checkIfPathExist($listOfDestDir[$i]))) {
+            makeDir($listOfDestDir[$i])
+            $_++; Write-Host $_ "created:" $listOfDestDir[$i]
             }Else {
                 Write-Host "nothing created!"
-                }
+            }
         }
     }
 
@@ -111,7 +117,7 @@ function highestNumDirName($itemList) { # error - when pressing enter
         $secHighestPathBackup = $itemList[$i].FullName # better choose modification date 
         }
     $firstHighestNumBackup = $highestNumBackup + 1 | % {"{0:d3}" -f $_}
-    $firstHighestPathBackup = $destVolPath + $firstHighestNumBackup # Join-Path?
+    $firstHighestPathBackup = Join-Path -Path $destVolPath -ChildPath $firstHighestNumBackup
     $backupNames += $firsthighestPathBackup
     $backupNames += $secHighestPathBackup
     return $backupNames
@@ -119,7 +125,7 @@ function highestNumDirName($itemList) { # error - when pressing enter
 
 # create directories silently
 function makeDir($path) { # error - when pressing enter
-    mkdir $path | Out-Null # "> $null" would be much faster
+    New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
 }
 
 
