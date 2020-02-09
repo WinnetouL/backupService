@@ -43,9 +43,14 @@ function calcHash($path) {
     }
 
 # copy files
-function copyFile($sourcePath, $backupQualifier) {
-    $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
-    Copy-Item -Path $sourcePath -Destination $destPath -Force 
+function copyFile($sourcePath, $backupQualifier, $backupType) {
+    if ($backupType -eq "1") {
+        $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
+        Copy-Item -Path $sourcePath -Destination $destPath -Force -Recurse
+    }elseif ($backupType -eq "2") {
+        $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
+        Copy-Item -Path $sourcePath -Destination $destPath -Force
+        }
     }
 
 # init required variabels
@@ -125,6 +130,10 @@ $backupNames = [System.Collections.Generic.List[string]]@($backupNames) # object
 if ($backupType -eq "1") {
     Write-Host "1 ---" $backupNames[0]
     makeDir $backupNames[0]
+    for ($i=0; $i -lt $sourFilePath.Count; $i++){
+        Write-host $i "--Copy--" $sourFilePath[$i]
+        copyFile $sourFilePath[$i] $backupNames[0] $backupType
+    }
 }elseif ($backupType -eq "2") {
     # get a list of subdirs at destination
     $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
@@ -168,7 +177,7 @@ if ($backupType -eq "1") {
             makeDir $listOfDestDir[$i]
             $_++; Write-Host $_ "created:" $listOfDestDir[$i]
             }Else {
-                Write-Host "Nothing Created!"
+                Write-Host "No new folder created at destination!"
             }
         }
     # get list of files to copy
@@ -190,6 +199,6 @@ if ($backupType -eq "1") {
     }
     for ($i=0; $i -lt $filesToCopy.Count; $i++){
         Write-host $i "--Copy--" $filesToCopy[$i]
-        copyFile $filesToCopy[$i] $backupNames[0]
+        copyFile $filesToCopy[$i] $backupNames[0] $backupType
         }
     }
