@@ -89,7 +89,7 @@ if ($backupType -eq "1") {
     $listOfSourQualifier = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
         Split-Path -Path $listOfSourDir[$i] -Qualifier | % {if ($listOfSourQualifier -notcontains $_) {$listOfSourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
-        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} |  % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 80 
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 80 
         }
     # create a list of dir which potentially need to be removed before copy process starts
     $listPotentialRmDir = New-Object System.Collections.Generic.List[string]
@@ -103,33 +103,20 @@ if ($backupType -eq "1") {
         if (!(checkIfPathExist($listPotentialRmDir[$i]))) {
             $itemRmDir = foreach ($qualifier in $listOfSourQualifier) {$listPotentialRmDir[$i].Replace($qualifier, $backupNames[0])}
             $listRmDir.Add($itemRmDir)
-            Write-Host "Would be removed:" $itemRmDir
+            Write-Host "Will be removed:" $itemRmDir
             }
         }
     # remove dir at destination if not required by selection
-    
-    exit
-    for ($i=0; $i -lt $listOfDestDir.Count; $i++){
-        Write-Host "wish - " $listOfDestDir[$i]
-    }
-    for ($i=0; $i -lt $listExistDestDir.Count; $i++){
-        Write-Host "real - " $listExistDestDir[$i]
-    }
-    exit
-    $rmDestDir = $listExistDestDir | ?{$listOfDestDir -Match $_} # what (not)contains the list in the sec part
-    for ($i=0; $i -lt $rmDestDir.Count; $i++){
-        Write-Host "remove - " $rmDestDir[$i]
-        }
-    
-
-    
+    $listRmDir = $listRmDir | sort {($_.ToCharArray() | ?{$_ -eq "\"} | measure).count} -Descending # sort dir by depth in order to have no issues at removal
+    pause
+    foreach ($dir in $listRmDir) {removeDir $dir}
     # create subdir at destination location if it doesn't exist
     for ($i=0; $i -lt $listOfDestDir.Count; $i++){
         if (!(checkIfPathExist($listOfDestDir[$i]))) {
             makeDir($listOfDestDir[$i])
             $_++; Write-Host $_ "created:" $listOfDestDir[$i]
             }Else {
-                Write-Host "nothing created!"
+                Write-Host "Nothing Created!"
             }
         }
     }
@@ -162,6 +149,11 @@ function makeDir($path) {
     New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
     }
 
+# remove directories silently
+function removeDir($path) {
+    Remove-Item -path $path -Recurse -Force
+    }
+
 # 
 function genListSubDir($sourPath) {
     $listOfDir = New-Object System.Collections.Generic.List[string]
@@ -170,4 +162,3 @@ function genListSubDir($sourPath) {
         }
     return $listOfDir
     }
-
