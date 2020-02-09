@@ -3,7 +3,6 @@ function checkIfPathExist($path) { # error - when pressing enter
     $addOrNot = Test-Path -Path $path
     return $addOrNot
     }
-
 # returns an array with the required paths
 function highestNumDirName($itemList) {
     $backupNames = New-Object System.Collections.Generic.List[string]
@@ -20,24 +19,27 @@ function highestNumDirName($itemList) {
     $backupNames += $secHighestPathBackup
     return $backupNames
     }
-
 # create directories silently
 function makeDir($path) {
     New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
     }
-
 # remove directories silently
 function removeDir($path) {
     Remove-Item -path $path -Recurse -Force
     }
-
-# 
+# returns a list of all childpathes of directories inside a parent path
 function genListSubDir($sourPath) {
     $listOfDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $sourPath.Count; $i++){
-        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$listOfDir.Add($_.FullName)} # D:\
+        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$listOfDir.Add($_.FullName)}
         }
     return $listOfDir
+    }
+# returns a list wish hash and filenames
+function calcHash($path) {
+    $hashList = New-Object System.Collections.Generic.List[string]
+    Get-ChildItem -Path $path -Force | % {$hashList.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashList.Add($_.Hash)}
+    return $hashList
     }
 
 # init required variabels
@@ -121,21 +123,25 @@ if ($backupType -eq "1") {
     # get a list of subdirs at destination
     $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
     $listExistDestDir = genListSubDir $backupNames # get a list of the dir which already exist, to be able to determine which dirs can be deleted
+    
     # get list of subdirs at source
     $listOfSourDir = genListSubDir $sourFilePath
+    
     # generate a list out of the subdirs but for destination location
     $listOfDestDir = New-Object System.Collections.Generic.List[string]
     $listOfSourQualifier = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
         Split-Path -Path $listOfSourDir[$i] -Qualifier | % {if ($listOfSourQualifier -notcontains $_) {$listOfSourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
-        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 80 
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 124
         }
+    
     # create a list of dir which potentially need to be removed before copy process starts
     $listPotentialRmDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listExistDestDir.Count; $i++){
         $itemPotentialRmDir = foreach ($qualifier in $listOfSourQualifier) {$listExistDestDir[$i].Replace($backupNames[0], $qualifier)}
         $listPotentialRmDir.Add($itemPotentialRmDir)
     }
+    
     # remove dir which exist in the dest backup, but are not part of the dir which needs to be back upped
     $listRmDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listPotentialRmDir.Count; $i++){
@@ -145,10 +151,11 @@ if ($backupType -eq "1") {
             Write-Host "Will be removed:" $itemRmDir
             }
         }
+    
     # remove dir at destination if not required by selection
     $listRmDir = $listRmDir | sort {($_.ToCharArray() | ?{$_ -eq "\"} | measure).count} -Descending # sort dir by depth in order to have no issues at removal
-    pause
     foreach ($dir in $listRmDir) {removeDir $dir}
+    
     # create subdir at destination location if it doesn't exist
     for ($i=0; $i -lt $listOfDestDir.Count; $i++){
         if (!(checkIfPathExist $listOfDestDir[$i])) {
@@ -158,4 +165,24 @@ if ($backupType -eq "1") {
                 Write-Host "Nothing Created!"
             }
         }
-    }
+    # get list of files to copy
+    $filesToCopy = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $listOfSourDir.Count; $i++){
+        $listOfSourDirHash = calcHash $listOfSourDir[$i]
+        $listOfDestDirHash = calcHash $listOfDestDir[$i]
+        for ($ii=1; $ii -lt $listOfSourDirHash.Count; $ii+=2){
+            if ($listOfDestDirHash) {
+                if (!($listOfDestDirHash.Contains($listOfSourDirHash[$ii]))) {
+                    $filesToCopy.Add($listOfSourDirHash[$ii-1])
+                    }
+                }
+                Else{
+                    $filesToCopy.Add($listOfSourDirHash[$ii-1])
+                    }
+          
+            }
+     }
+     for ($i=0; $i -lt $filesToCopy.Count; $i++){
+        Write-host $i "--Copy--" $filesToCopy[$i]
+        }
+  }
