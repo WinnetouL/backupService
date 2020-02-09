@@ -42,6 +42,12 @@ function calcHash($path) {
     return $hashList
     }
 
+# copy files
+function copyFile($sourcePath, $backupQualifier) {
+    $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
+    Copy-Item -Path $sourcePath -Destination $destPath -Force 
+    }
+
 # init required variabels
 $sourFilePath = New-Object System.Collections.Generic.List[string]
 $destVolPath="NONE"
@@ -132,7 +138,7 @@ if ($backupType -eq "1") {
     $listOfSourQualifier = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
         Split-Path -Path $listOfSourDir[$i] -Qualifier | % {if ($listOfSourQualifier -notcontains $_) {$listOfSourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
-        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 124
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 130
         }
     
     # create a list of dir which potentially need to be removed before copy process starts
@@ -181,8 +187,9 @@ if ($backupType -eq "1") {
                     }
           
             }
-     }
-     for ($i=0; $i -lt $filesToCopy.Count; $i++){
+    }
+    for ($i=0; $i -lt $filesToCopy.Count; $i++){
         Write-host $i "--Copy--" $filesToCopy[$i]
+        copyFile $filesToCopy[$i] $backupNames[0]
         }
-  }
+    }
