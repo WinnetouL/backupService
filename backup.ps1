@@ -69,23 +69,60 @@ if (!(checkIfPathExist($destVolPath))) {
     makeDir($destVolPath)
     Write-Host "Backup Environment created at:" $destVolPath
 }
-
 $itemsBackupEnv = Get-ChildItem -Path $destVolPath -Attributes Directory
 $backupNames = highestNumDirName($itemsBackupEnv)
+$backupNames = [System.Collections.Generic.List[string]]@($backupNames) # object(array) -> list(object)
 if ($backupType -eq "1") {
-    # Write-Host "1 ---" $backupNames[0]
+    Write-Host "1 ---" $backupNames[0]
     makeDir($backupNames[0])
 }elseif ($backupType -eq "2") {
-    # get list of subdirs
+    # get a list of subdirs at destination
+    $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
+    $listExistDestDir = genListSubDir($backupNames) # get a list of the dir which already exist, to be able to determine which dirs can be deleted
+    #######
+    $listExistDestDir = [System.Collections.Generic.List[string]]@($listExistDestDir)
+    #######
+    # get list of subdirs at source
     $listOfSourDir = genListSubDir($sourFilePath)
     # generate a list out of the subdirs but for destination location
     $listOfDestDir = New-Object System.Collections.Generic.List[string]
+    $listOfSourQualifier = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
-        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[1] -ChildPath $_} |  % {$listOfDestDir.Add($_)}
+        Split-Path -Path $listOfSourDir[$i] -Qualifier | % {if ($listOfSourQualifier -notcontains $_) {$listOfSourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} |  % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 80 
+        }
+    # create a list of dir which potentially need to be removed before copy process starts
+    $listPotentialRmDir = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $listExistDestDir.Count; $i++){
+        $itemPotentialRmDir = foreach ($qualifier in $listOfSourQualifier) {$listExistDestDir[$i].Replace($backupNames[0], $qualifier)}
+        $listPotentialRmDir.Add($itemPotentialRmDir)
     }
+    # remove dir which exist in the dest backup, but are not part of the dir which needs to be back upped
+    $listRmDir = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $listPotentialRmDir.Count; $i++){
+        if (!(checkIfPathExist($listPotentialRmDir[$i]))) {
+            $itemRmDir = foreach ($qualifier in $listOfSourQualifier) {$listPotentialRmDir[$i].Replace($qualifier, $backupNames[0])}
+            $listRmDir.Add($itemRmDir)
+            Write-Host "Would be removed:" $itemRmDir
+            }
+        }
+    # remove dir at destination if not required by selection
+    
+    exit
     for ($i=0; $i -lt $listOfDestDir.Count; $i++){
-         Write-Host "yikes - "$listOfDestDir[$i]
+        Write-Host "wish - " $listOfDestDir[$i]
     }
+    for ($i=0; $i -lt $listExistDestDir.Count; $i++){
+        Write-Host "real - " $listExistDestDir[$i]
+    }
+    exit
+    $rmDestDir = $listExistDestDir | ?{$listOfDestDir -Match $_} # what (not)contains the list in the sec part
+    for ($i=0; $i -lt $rmDestDir.Count; $i++){
+        Write-Host "remove - " $rmDestDir[$i]
+        }
+    
+
+    
     # create subdir at destination location if it doesn't exist
     for ($i=0; $i -lt $listOfDestDir.Count; $i++){
         if (!(checkIfPathExist($listOfDestDir[$i]))) {
@@ -101,11 +138,11 @@ if ($backupType -eq "1") {
 function checkIfPathExist($path) { # error - when pressing enter
     $addOrNot = Test-Path -Path $path
     return $addOrNot
-}
+    }
 
 # returns an array with the required paths
 function highestNumDirName($itemList) {
-    $backupNames = New-Object System.Collections.ArrayList
+    $backupNames = New-Object System.Collections.Generic.List[string]
     $highestNumBackup = 0
     for ($i=0; $i -lt $itemList.length; $i++){
         if ($highestNumBackup -lt ($itemList[$i].Name -as [int])) {
@@ -123,14 +160,14 @@ function highestNumDirName($itemList) {
 # create directories silently
 function makeDir($path) {
     New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
-}
+    }
 
-# create directories silently
+# 
 function genListSubDir($sourPath) {
     $listOfDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $sourPath.Count; $i++){
         Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$listOfDir.Add($_.FullName)} # D:\
         }
     return $listOfDir
-}
+    }
 
