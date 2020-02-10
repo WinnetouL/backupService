@@ -10,8 +10,7 @@ Write-Host "-----------"
 Write-Host "`nAvailable backup types:"
 Write-Host "    -> 1: Entire new backup"
 Write-Host "    -> 2: Update an existing backup (incremental)"
-Write-Host "Which kind of backup do you want to execute (enter 1 or 2):"
-$backupType = Read-Host
+$backupType = Read-Host "Which kind of backup do you want to execute (enter 1 or 2)"
 if (($backupType -ne "1") -and ($backupType -ne "2")) {
     Write-Host "Error: None existing backup type - exit!"
     exit
@@ -74,6 +73,7 @@ if (!(checkIfPathExist $destVolPath)) {
 $itemsBackupEnv = Get-ChildItem -Path $destVolPath -Attributes Directory
 $backupNames = highestNumDirName $itemsBackupEnv
 $backupNames = [System.Collections.Generic.List[string]]@($backupNames) # object(array) -> list(object)
+
 if ($backupType -eq "1") {
     makeDir $backupNames[0]
     Write-Host "`nCopied Directories:"
@@ -96,7 +96,7 @@ if ($backupType -eq "1") {
     $listOfSourQualifier = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
         Split-Path -Path $listOfSourDir[$i] -Qualifier | % {if ($listOfSourQualifier -notcontains $_) {$listOfSourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
-        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 130
+        Split-Path -Path $listOfSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$listOfDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 88
         }
     
     # create a list of dir which potentially need to be removed before copy process starts
@@ -127,7 +127,7 @@ if ($backupType -eq "1") {
             makeDir $listOfDestDir[$i]
             $_++; Write-Host $_ "created:" $listOfDestDir[$i]
             }Else {
-                Write-Host "No new folder created at destination!"
+                Write-Host "Already exists:" $listOfDestDir[$i]
             }
         }
 
