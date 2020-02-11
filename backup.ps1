@@ -106,7 +106,7 @@ if ($backupType -eq "1") {
         $listPotentialRmDir.Add($itemPotentialRmDir)
     }
     
-    # remove dir which exist in the dest backup, but are not part of the dir which needs to be back upped
+    # create a list of dir to remove which exist in the dest backup, but are not part of the dir which needs to be back upped
     $listRmDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listPotentialRmDir.Count; $i++){
         if (!(checkIfPathExist $listPotentialRmDir[$i])) {
@@ -131,6 +131,24 @@ if ($backupType -eq "1") {
             }
         }
 
+    # get list of files to remove
+    $filesToRemove = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $listOfDestDir.Count; $i++){
+        $listOfSourDirHash = calcHash $listOfSourDir[$i]
+        $listOfDestDirHash = calcHash $listOfDestDir[$i]
+        for ($ii=1; $ii -lt $listOfDestDirHash.Count; $ii+=2){
+            if ($listOfSourDirHash) {
+                if (!($listOfSourDirHash.Contains($listOfDestDirHash[$ii]))) {
+                    $filesToRemove.Add($listOfDestDirHash[$ii-1])
+                    }
+                }
+                Else{
+                    $filesToRemove.Add($listOfDestDirHash[$ii-1])
+                    }
+          
+            }
+    }
+
     # get list of files to copy
     $filesToCopy = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $listOfSourDir.Count; $i++){
@@ -148,7 +166,12 @@ if ($backupType -eq "1") {
           
             }
     }
+    # File synchronization (remove and copy files)
     Write-Host "`nFile synchronization:"
+    for ($i=0; $i -lt $filesToRemove.Count; $i++){
+        Write-host $i "--Remove--" $filesToRemove[$i]
+        removeFile $filesToRemove[$i] $backupNames[0]
+        }
     for ($i=0; $i -lt $filesToCopy.Count; $i++){
         Write-host $i "--Copy--" $filesToCopy[$i]
         copyFile $filesToCopy[$i] $backupNames[0] $backupType
