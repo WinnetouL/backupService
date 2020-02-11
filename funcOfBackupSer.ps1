@@ -3,6 +3,7 @@ function checkIfPathExist($path) { # error - when pressing enter
     $addOrNot = Test-Path -Path $path
     return $addOrNot
     }
+
 # returns an array with the required paths
 function highestNumDirName($itemList) {
     $backupNames = New-Object System.Collections.Generic.List[string]
@@ -19,14 +20,17 @@ function highestNumDirName($itemList) {
     $backupNames += $secHighestPathBackup
     return $backupNames
     }
+
 # create directories silently
 function makeDir($path) {
     New-Item -Path $path -type Directory | Out-Null # "> $null" would be much faster
     }
+
 # remove directories silently
 function removeDir($path) {
     Remove-Item -path $path -Recurse -Force
     }
+
 # returns a list of all childpathes of directories inside a parent path
 function genListSubDir($sourPath) {
     $listOfDir = New-Object System.Collections.Generic.List[string]
@@ -35,6 +39,7 @@ function genListSubDir($sourPath) {
         }
     return $listOfDir
     }
+
 # returns a list wish hash and filenames
 function calcHash($path) {
     $hashList = New-Object System.Collections.Generic.List[string]
@@ -51,4 +56,9 @@ function copyFile($sourcePath, $backupQualifier, $backupType) {
         $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
         Copy-Item -Path $sourcePath -Destination $destPath -Force
         }
+    }
+
+# remove files
+function removeFile($destPath, $backupQualifier) {
+    Remove-Item -Path $destPath -Force
     }
