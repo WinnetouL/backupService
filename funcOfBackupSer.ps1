@@ -1,23 +1,23 @@
 ﻿# check if variable is a existing path
-function checkIfPathExist($path) { # error - when pressing enter
+function checkPathExist($path) { # error - when pressing enter
     $addOrNot = Test-Path -Path $path
     return $addOrNot
     }
 
 # returns an array with the required paths
-function highestNumDirName($itemList) {
+function highestNumDirName($itemList, $envPath) {
     $backupNames = New-Object System.Collections.Generic.List[string]
-    $highestNumBackup = 0
+    $highestNum = 0
     for ($i=0; $i -lt $itemList.length; $i++){
-        if ($highestNumBackup -lt ($itemList[$i].Name -as [int])) {
-            $highestNumBackup = $itemList[$i].Name -as [int]
+        if ($highestNum -lt ($itemList[$i].Name -as [int])) {
+            $highestNum = $itemList[$i].Name -as [int]
             }
-        $secHighestPathBackup = $itemList[$i].FullName # better choose modification date 
+        $secHighestPath = $itemList[$i].FullName # better choose modification date 
         }
-    $firstHighestNumBackup = $highestNumBackup + 1 | % {"{0:d3}" -f $_}
-    $firstHighestPathBackup = Join-Path -Path $destVolPath -ChildPath $firstHighestNumBackup
-    $backupNames += $firsthighestPathBackup
-    $backupNames += $secHighestPathBackup
+    $firstHighestNum = $highestNum + 1 | % {"{0:d3}" -f $_}
+    $firstHighestPath = Join-Path -Path $envPath -ChildPath $firstHighestNum
+    $backupNames += $firsthighestPath
+    $backupNames += $secHighestPath
     return $backupNames
     }
 
@@ -28,23 +28,24 @@ function makeDir($path) {
 
 # remove directories silently
 function removeDir($path) {
+    Write-Host "    -> --Remove--" $path
     Remove-Item -path $path -Recurse -Force
     }
 
 # returns a list of all childpathes of directories inside a parent path
 function genListSubDir($sourPath) {
-    $listOfDir = New-Object System.Collections.Generic.List[string]
+    $dirs = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $sourPath.Count; $i++){
-        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$listOfDir.Add($_.FullName)}
+        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$dirs.Add($_.FullName)}
         }
-    return $listOfDir
+    return $dirs
     }
 
 # returns a list wish hash and filenames
 function calcHash($path) {
-    $hashList = New-Object System.Collections.Generic.List[string]
-    Get-ChildItem -Path $path -Force | % {$hashList.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashList.Add($_.Hash)}
-    return $hashList
+    $hashes = New-Object System.Collections.Generic.List[string]
+    Get-ChildItem -Path $path -Force | % {$hashes.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashes.Add($_.Hash)}
+    return $hashes
     }
 
 # copy files
@@ -52,13 +53,14 @@ function copyFile($sourcePath, $backupQualifier, $backupType) {
     if ($backupType -eq "1") {
         $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
         Copy-Item -Path $sourcePath -Destination $destPath -Force -Recurse
-    }elseif ($backupType -eq "2") {
+    }
+    elseif ($backupType -eq "2") {
         $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
         Copy-Item -Path $sourcePath -Destination $destPath -Force
         }
     }
 
 # remove files
-function removeFile($destPath, $backupQualifier) {
+function removeFile($destPath) {
     Remove-Item -Path $destPath -Force
     }
