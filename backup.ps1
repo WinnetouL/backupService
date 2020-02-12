@@ -15,11 +15,11 @@ if (($backupType -ne "1") -and ($backupType -ne "2")) {
 
 # selection of Backup location
 $destQualifier="None"
-$availableVol = Get-WMIObject win32_volume -Filter "DriveType='2'" | Select-Object -property Label, Name # 2 = Removable
+$availableVol = Get-WMIObject win32_volume -Filter "DriveType='2'" # 2 = Removable
 do{
     Write-Host "`nDetected Volumes:"
-    for ($i=0; $i -lt $availableVol.length; $i++){
-        Write-Host "    ->"$availableVol[$i].Label "("$availableVol[$i].Name")"
+    foreach($volume in $availableVol){
+        Write-Host "    ->"$volume.Label "("$volume.Name")"
         }
     $destVolName = Read-Host "Enter your destination volume (name)"
     $availableVol | % {if( $_.Label -ceq $destVolName){$destQualifier=$_.Name}} # % = foreach; -ceq -> case sensitive
