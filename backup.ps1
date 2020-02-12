@@ -5,21 +5,27 @@ Write-Host "-----------"
 
 # choose Backup Type
 Write-Host "`nAvailable Backup Types:"
-Write-Host "    -> 1: Entire new Backup"
-Write-Host "    -> 2: Update an existing Backup (incremental)"
+Write-Host "`t-> 1: Entire new Backup"
+Write-Host "`t-> 2: Update an existing Backup (incremental)"
 $backupType = Read-Host "Which kind of Backup do you want to execute (enter 1 or 2)"
 if (($backupType -ne "1") -and ($backupType -ne "2")) {
-    Write-Host "Error: None existing Backup Type - exit!"
+    Write-Host "`tError: None existing Backup Type!"
+    Write-Host "`tExit!"
     exit
     }
 
 # selection of Backup location
 $destQualifier="None"
 $availableVol = Get-WMIObject win32_volume -Filter "DriveType='2'" # 2 = Removable
+if (!$availableVol){
+    Write-Host "`tError: No Volumes avaiable!"
+    Write-Host "`tExit"
+    exit
+    }
 do{
     Write-Host "`nDetected Volumes:"
     foreach($volume in $availableVol){
-        Write-Host "    ->"$volume.Label "("$volume.Name")"
+        Write-Host "`t->"$volume.Label "("$volume.Name")"
         }
     $destVolName = Read-Host "Enter your destination volume (name)"
     $availableVol | % {if( $_.Label -ceq $destVolName){$destQualifier=$_.Name}} # % = foreach; -ceq -> case sensitive
@@ -37,27 +43,32 @@ do{
         continue
         }
     Else {
-        Write-Host "'$path' is not an existing directory!"
+        Write-Host "`t->'$path' is not an existing directory!"
     }
 } while (!($path -eq "d"))
+if (!$sourFilePath){
+    Write-Host "`tError: No Path entered!"
+    Write-Host "`tExit"
+    exit
+    }
 
 # confirmation
 Write-Host "`nConfirmation"
 Write-Host "-------------"
 Write-Host "`nSelected Backup Type:"
 switch ($backupType){
-    1 {"    -> New Backup"}
-    2 {"    -> Incremental Backup"}
+    1 {"`t-> New Backup"}
+    2 {"`t-> Incremental Backup"}
     }
 Write-Host "`nThe following folders are going to be backed up:"
 for ($i=0; $i -lt $sourFilePath.Count; $i++){
-    Write-Host "    ->"$sourFilePath[$i]
+    Write-Host "`t->"$sourFilePath[$i]
     }
 Write-Host "`nSelected destination Volume:"
-Write-Host "    ->" $destVolName
+Write-Host "`t->" $destVolName
 $confirm = Read-Host -Prompt "`nWrite 'Yes' to confirm or 'no' to cancel"
 if (!($confirm -ceq "Yes")) {
-    Write-Host "`nCanceled!"
+    Write-Host "`tCanceled!"
     exit 
     }
 
@@ -65,17 +76,16 @@ if (!($confirm -ceq "Yes")) {
 $envPath = Join-Path -Path $destQualifier -ChildPath "BackupEnv"
 if (!(checkPathExist $envPath)) {
     makeDir $envPath
-    Write-Host "    -> Backup Environment created at:" $envPath
+    Write-Host "`t-> Backup Environment created at:" $envPath
     }
 $subDirsEnv = Get-ChildItem -Path $envPath -Attributes Directory
-$backupNames = highestNumDirName $subDirsEnv $envPath
-$backupNames = [System.Collections.Generic.List[string]]@($backupNames) # object(array) -> list(object)
+[System.Collections.Generic.List[string]]$backupNames = highestNumDirName $subDirsEnv $envPath
 
 if ($backupType -eq "1") {
     makeDir $backupNames[0]
     Write-Host "`nCopied Directories:"
     for ($i=0; $i -lt $sourFilePath.Count; $i++){
-        Write-host $i "    -> --Copy--" $sourFilePath[$i]
+        Write-Host $i "`t-> --Copy--" $sourFilePath[$i]
         copyFile $sourFilePath[$i] $backupNames[0] $backupType
         }
     Write-Host "`nNew Backup at: " $backupNames[0]
@@ -122,10 +132,10 @@ elseif ($backupType -eq "2") {
     for ($i=0; $i -lt $futureDestDir.Count; $i++){
         if (!(checkPathExist $futureDestDir[$i])) {
             makeDir $futureDestDir[$i]
-            $_++; Write-Host $_ "    -> --Created--" $futureDestDir[$i]
+            $_++; Write-Host $_ "`t-> --Created--" $futureDestDir[$i]
             }
             Else {
-                Write-Host "    -> Already exists:" $futureDestDir[$i]
+                Write-Host "`t-> Already exists:" $futureDestDir[$i]
                 }
         }
 
@@ -166,12 +176,13 @@ elseif ($backupType -eq "2") {
     # File synchronization (remove and copy files)
     Write-Host "`nFile synchronization:"
     for ($i=0; $i -lt $rmFiles.Count; $i++){
-        Write-host $i "    -> --Remove--" $rmFiles[$i]
+        Write-Host $i "`t-> --Remove--" $rmFiles[$i]
         removeFile $rmFiles[$i]
         }
     for ($i=0; $i -lt $filesToCopy.Count; $i++){
-        Write-host $i "    -> --Copy--" $filesToCopy[$i]
+        Write-Host $i "`t-> --Copy--" $filesToCopy[$i]
         copyFile $filesToCopy[$i] $backupNames[0] $backupType
         }
-    Write-Host "`nUpdated the following Backup: " $backupNames[0]
+    Write-Host "`nUpdated the following Backup:"
+    Write-Host "`t->" $backupNames[0]
     }
