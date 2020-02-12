@@ -1,5 +1,5 @@
 ﻿# check if variable is a existing path
-function checkPathExist($path) { # error - when pressing enter
+function checkPathExist($path) {
     $addOrNot = Test-Path -Path $path
     return $addOrNot
     }
@@ -28,7 +28,7 @@ function makeDir($path) {
 
 # remove directories silently
 function removeDir($path) {
-    Write-Host "    -> --Remove--" $path
+    Write-Host "`t-> --Remove--" $path
     Remove-Item -path $path -Recurse -Force
     }
 
