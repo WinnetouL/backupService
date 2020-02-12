@@ -44,7 +44,7 @@ function genListSubDir($sourPath) {
 # returns a list wish hash and filenames
 function calcHash($path) {
     $hashes = New-Object System.Collections.Generic.List[string]
-    Get-ChildItem -Path $path -Force | % {$hashes.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashes.Add($_.Hash)}
+    Get-ChildItem -Path $path -Force -Attributes !D | % {$hashes.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashes.Add($_.Hash)}
     return $hashes
     }
 
