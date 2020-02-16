@@ -28,7 +28,7 @@ do{
         Write-Host "`t->"$volume.Label "("$volume.Name")"
         }
     $destVolName = Read-Host "Enter your destination volume (name)"
-    $availableVol | % {if( $_.Label -ceq $destVolName){$destQualifier=$_.Name}} # % = foreach; -ceq -> case sensitive
+    $availableVol | ForEach-Object {if( $_.Label -ceq $destVolName){$destQualifier=$_.Name}}
 } while ($destQualifier -ceq "None")
 
 # add the folders which need to be backed up to list
@@ -78,7 +78,7 @@ if (!(checkPathExist $envPath)) {
     makeDir $envPath
     Write-Host "`t-> Backup Environment created at:" $envPath
     }
-$subDirsEnv = Get-ChildItem -Path $envPath -Attributes Directory
+$subDirsEnv = Get-ChildItem -Path $envPath -Attributes D
 [System.Collections.Generic.List[string]]$backupNames = highestNumDirName $subDirsEnv $envPath
 
 if ($backupType -eq "1") {
@@ -98,10 +98,10 @@ elseif ($backupType -eq "2") {
     $trailer = New-Object System.Collections.Generic.List[string]
     $onetimeSubSourDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $sourFilePath.Count; $i++){ # for eingabe
-        Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes D | % {$onetimeSubSourDir.Add($_.FullName); $allDirSour.Add($_.FullName)} # two lists of all subdir; don't add NULL values in case of error (UnauthorizedAccessException)
+        Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes D | ForEach-Object {$onetimeSubSourDir.Add($_.FullName); $allDirSour.Add($_.FullName)} # two lists of all subdir; don't add NULL values in case of error (UnauthorizedAccessException)
         $parent = Split-Path -Path $sourFilePath[$i] -Parent # D:\; C:\Users\Tobi\Documents\Informatik\powershell
         for ($ii=0; $ii -lt $onetimeSubSourDir.Count; $ii++){
-            $onetimeSubSourDir[$ii] -replace [regex]::escape($parent)  | % {$trailer.Add($_)} # replace with nothing to get just the expected ending
+            $onetimeSubSourDir[$ii] -replace [regex]::escape($parent)  | ForEach-Object {$trailer.Add($_)} # replace with nothing to get just the expected ending
             }
         $onetimeSubSourDir.Clear()
         }
@@ -133,7 +133,7 @@ elseif ($backupType -eq "2") {
 
     # remove dir at destination if not required by selection
     Write-Host "`nFolder synchronization:"
-    $rmDir = $rmDir | sort {($_.ToCharArray() | ?{$_ -eq "\"} | measure).count} -Descending # sort dir by depth in order to have no issues at removal
+    $rmDir = $rmDir | Sort-Object {($_.ToCharArray() | Where-Object{$_ -eq "\"} | Measure-Object).count} -Descending # sort dir by depth in order to have no issues at removal
     foreach ($dir in $rmDir) {removeDir $dir}
 
     # create subdir at destination location if it doesn't exist
@@ -142,9 +142,9 @@ elseif ($backupType -eq "2") {
             makeDir $futureDestDir[$i]
             $_++; Write-Host $_ "`t-> --Created--" $futureDestDir[$i]
             }
-            Else {
-                Write-Host "`t-> Already exists:" $futureDestDir[$i]
-                }
+        Else {
+            Write-Host "`t-> Already exists:" $futureDestDir[$i]
+            }
         }
 
     # get list of files to remove
@@ -158,9 +158,9 @@ elseif ($backupType -eq "2") {
                     $rmFiles.Add($futureDestDirHash[$ii-1])
                     }
                 }
-                Else{
-                    $rmFiles.Add($futureDestDirHash[$ii-1])
-                    }
+            Else{
+                $rmFiles.Add($futureDestDirHash[$ii-1])
+                }
             }
         }
 
@@ -178,12 +178,12 @@ elseif ($backupType -eq "2") {
                     $filesToCopy.Add($path) # dest file
                     }
                 }
-                Else{
-                    $filesToCopy.Add($subSourDirHash[$ii-1])
-                    $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
-                    $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
-                    $filesToCopy.Add($path)
-                    }
+            Else{
+                $filesToCopy.Add($subSourDirHash[$ii-1])
+                $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
+                $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
+                $filesToCopy.Add($path)
+                }
             }
         }
 
