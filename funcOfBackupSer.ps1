@@ -49,13 +49,11 @@ function calcHash($path) {
     }
 
 # copy files
-function copyFile($sourcePath, $backupQualifier, $backupType) {
+function copyFile($sourcePath, $destPath, $backupType) {
     if ($backupType -eq "1") {
-        $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
         Copy-Item -Path $sourcePath -Destination $destPath -Force -Recurse
     }
-    elseif ($backupType -eq "2") {
-        $destPath = Split-Path -Path $sourcePath -NoQualifier | % {Join-Path -Path $backupQualifier -ChildPath $_}
+    elseif ($backupType -eq "2") { 
         Copy-Item -Path $sourcePath -Destination $destPath -Force
         }
     }
