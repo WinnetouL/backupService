@@ -86,40 +86,48 @@ if ($backupType -eq "1") {
     Write-Host "`nCopied Directories:"
     for ($i=0; $i -lt $sourFilePath.Count; $i++){
         Write-Host $i "`t-> --Copy--" $sourFilePath[$i]
-        copyFile $sourFilePath[$i] $backupNames[0] $backupType
+        $parent = Split-Path -Path $sourFilePath[$i] -Leaf
+        $destFilePath = Join-Path -Path $backupNames[0] -ChildPath $parent
+        copyFile $sourFilePath[$i] $destFilePath $backupType
         }
     Write-Host "`nNew Backup at: " $backupNames[0]
     }
 elseif ($backupType -eq "2") {
+    # get a list of all subdirectories at source and a list of corresponding path trailers
+    $allDirSour = New-Object System.Collections.Generic.List[string]
+    $trailer = New-Object System.Collections.Generic.List[string]
+    $onetimeSubSourDir = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $sourFilePath.Count; $i++){ # for eingabe
+        Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes D | % {$onetimeSubSourDir.Add($_.FullName); $allDirSour.Add($_.FullName)} # two lists of all subdir; don't add NULL values in case of error (UnauthorizedAccessException)
+        $parent = Split-Path -Path $sourFilePath[$i] -Parent # D:\; C:\Users\Tobi\Documents\Informatik\powershell
+        for ($ii=0; $ii -lt $onetimeSubSourDir.Count; $ii++){
+            $onetimeSubSourDir[$ii] -replace [regex]::escape($parent)  | % {$trailer.Add($_)} # replace with nothing to get just the expected ending
+            }
+        $onetimeSubSourDir.Clear()
+        }
 
-    # get a list of subdirs at destination
-    $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
-    $currSubDestDir = genListSubDir $backupNames # get a list of the dir which already exist, to be able to determine which dirs can be deleted
-
-    # get list of subdirs at source
-    $subSourDir = genListSubDir $sourFilePath
-
-    # generate a list out of the subdirs but for destination location
+    # generate a list with the all full paths for the backup out of trailer and the corresponding backup
     $futureDestDir = New-Object System.Collections.Generic.List[string]
-    $sourQualifier = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $subSourDir.Count; $i++){
-        Split-Path -Path $subSourDir[$i] -Qualifier | % {if ($sourQualifier -notcontains $_) {$sourQualifier.Add($_)}} # need it later for building paths and check them (removal part)
-        Split-Path -Path $subSourDir[$i] -NoQualifier | % {Join-Path -Path $backupNames[0] -ChildPath $_} | % {$futureDestDir.Add($_)} # '$backupNames[0]' due the quick fix line 86
+    for ($i=0; $i -lt $trailer.Count; $i++){
+        $path = Join-Path -Path $backupNames[1] -ChildPath $trailer[$i]
+        $futureDestDir.Add($path)
         }
 
-    # create a list of dir which potentially need to be removed before copy process starts
-    $potentialRmDir = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $currSubDestDir.Count; $i++){
-        $itemPotentialRmDir = foreach ($qualifier in $sourQualifier) {$currSubDestDir[$i].Replace($backupNames[0], $qualifier)}
-        $potentialRmDir.Add($itemPotentialRmDir)
+    # add also the the full path for the future parent paths, due they aren't included in the trailer list and therefore
+    for ($i=0; $i -lt $sourFilePath.Count; $i++){
+        $parent = Split-Path -Path $sourFilePath[$i] -Leaf
+        $path = Join-Path -Path $backupNames[1] -ChildPath $parent
+        $futureDestDir.Add($path)
+        $allDirSour.Add($sourFilePath[$i])
         }
+    $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
+    $currSubDirDest = genListSubDir $backupNames # get a list of the dir which already exist, to be able to determine which dirs can be deleted
 
-    # create a list of dir to remove which exist in the dest Backup, but are not part of the dir which needs to be backed up
+    # create a list of dir to remove which exist in the dest Backup, but are not part of the directories which needs to be backed up
     $rmDir = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $potentialRmDir.Count; $i++){
-        if (!(checkPathExist $potentialRmDir[$i])) {
-            $itemRmDir = foreach ($qualifier in $sourQualifier) {$potentialRmDir[$i].Replace($qualifier, $backupNames[0])}
-            $rmDir.Add($itemRmDir)
+    for ($i=0; $i -lt $currSubDirDest.Count; $i++){
+        if (!($futureDestDir.Contains($currSubDirDest[$i]))) {
+            $rmDir.Add($currSubDirDest[$i])
             }
         }
 
@@ -127,7 +135,7 @@ elseif ($backupType -eq "2") {
     Write-Host "`nFolder synchronization:"
     $rmDir = $rmDir | sort {($_.ToCharArray() | ?{$_ -eq "\"} | measure).count} -Descending # sort dir by depth in order to have no issues at removal
     foreach ($dir in $rmDir) {removeDir $dir}
-    
+
     # create subdir at destination location if it doesn't exist
     for ($i=0; $i -lt $futureDestDir.Count; $i++){
         if (!(checkPathExist $futureDestDir[$i])) {
@@ -142,7 +150,7 @@ elseif ($backupType -eq "2") {
     # get list of files to remove
     $rmFiles = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $futureDestDir.Count; $i++){
-        $subSourDirHash = calcHash $subSourDir[$i]
+        $subSourDirHash = calcHash $allDirSour[$i]
         $futureDestDirHash = calcHash $futureDestDir[$i]
         for ($ii=1; $ii -lt $futureDestDirHash.Count; $ii+=2){
             if ($subSourDirHash) {
@@ -158,17 +166,23 @@ elseif ($backupType -eq "2") {
 
     # get list of files to copy
     $filesToCopy = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $subSourDir.Count; $i++){
-        $subSourDirHash = calcHash $subSourDir[$i]
+    for ($i=0; $i -lt $allDirSour.Count; $i++){
+        $subSourDirHash = calcHash $allDirSour[$i]
         $futureDestDirHash = calcHash $futureDestDir[$i]
         for ($ii=1; $ii -lt $subSourDirHash.Count; $ii+=2){
             if ($futureDestDirHash) {
                 if (!($futureDestDirHash.Contains($subSourDirHash[$ii]))) {
-                    $filesToCopy.Add($subSourDirHash[$ii-1])
+                    $filesToCopy.Add($subSourDirHash[$ii-1]) # source file
+                    $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
+                    $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
+                    $filesToCopy.Add($path) # dest file
                     }
                 }
                 Else{
                     $filesToCopy.Add($subSourDirHash[$ii-1])
+                    $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
+                    $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
+                    $filesToCopy.Add($path)
                     }
             }
         }
@@ -176,12 +190,12 @@ elseif ($backupType -eq "2") {
     # File synchronization (remove and copy files)
     Write-Host "`nFile synchronization:"
     for ($i=0; $i -lt $rmFiles.Count; $i++){
-        Write-Host $i "`t-> --Remove--" $rmFiles[$i]
+        Write-Host "`t-> --Remove--" $rmFiles[$i]
         removeFile $rmFiles[$i]
         }
-    for ($i=0; $i -lt $filesToCopy.Count; $i++){
-        Write-Host $i "`t-> --Copy--" $filesToCopy[$i]
-        copyFile $filesToCopy[$i] $backupNames[0] $backupType
+    for ($i=0; $i -lt $filesToCopy.Count; $i+=2){
+        Write-Host "`t-> --Copied--" $filesToCopy[$i+1]
+        copyFile $filesToCopy[$i] $filesToCopy[$i+1] $backupType
         }
     Write-Host "`nUpdated the following Backup:"
     Write-Host "`t->" $backupNames[0]
