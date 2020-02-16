@@ -153,7 +153,7 @@ elseif ($backupType -eq "2") {
         $subSourDirHash = calcHash $allDirSour[$i]
         $futureDestDirHash = calcHash $futureDestDir[$i]
         for ($ii=1; $ii -lt $futureDestDirHash.Count; $ii+=2){
-            if ($subSourDirHash) {
+            if ($subSourDirHash.count -gt 0) {
                 if (!($subSourDirHash.Contains($futureDestDirHash[$ii]))) {
                     $rmFiles.Add($futureDestDirHash[$ii-1])
                     }
@@ -165,24 +165,24 @@ elseif ($backupType -eq "2") {
         }
 
     # get list of files to copy
-    $filesToCopy = New-Object System.Collections.Generic.List[string]
+    $cpFiles = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $allDirSour.Count; $i++){
         $subSourDirHash = calcHash $allDirSour[$i]
         $futureDestDirHash = calcHash $futureDestDir[$i]
         for ($ii=1; $ii -lt $subSourDirHash.Count; $ii+=2){
-            if ($futureDestDirHash) {
+            if ($futureDestDirHash.count -gt 0) {
                 if (!($futureDestDirHash.Contains($subSourDirHash[$ii]))) {
-                    $filesToCopy.Add($subSourDirHash[$ii-1]) # source file
+                    $cpFiles.Add($subSourDirHash[$ii-1]) # source file
                     $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
                     $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
-                    $filesToCopy.Add($path) # dest file
+                    $cpFiles.Add($path) # dest file
                     }
                 }
             Else{
-                $filesToCopy.Add($subSourDirHash[$ii-1])
+                $cpFiles.Add($subSourDirHash[$ii-1])
                 $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
                 $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
-                $filesToCopy.Add($path)
+                $cpFiles.Add($path)
                 }
             }
         }
@@ -193,9 +193,9 @@ elseif ($backupType -eq "2") {
         Write-Host "`t-> --Remove--" $rmFiles[$i]
         removeFile $rmFiles[$i]
         }
-    for ($i=0; $i -lt $filesToCopy.Count; $i+=2){
-        Write-Host "`t-> --Copied--" $filesToCopy[$i+1]
-        copyFile $filesToCopy[$i] $filesToCopy[$i+1] $backupType
+    for ($i=0; $i -lt $cpFiles.Count; $i+=2){
+        Write-Host "`t-> --Copied--" $cpFiles[$i+1]
+        copyFile $cpFiles[$i] $cpFiles[$i+1] $backupType
         }
     Write-Host "`nUpdated the following Backup:"
     Write-Host "`t->" $backupNames[0]
