@@ -14,7 +14,7 @@ function highestNumDirName($itemList, $envPath) {
             }
         $secHighestPath = $itemList[$i].FullName # better choose modification date 
         }
-    $firstHighestNum = $highestNum + 1 | % {"{0:d3}" -f $_}
+    $firstHighestNum = $highestNum + 1 | ForEach-Object {"{0:d3}" -f $_}
     $firstHighestPath = Join-Path -Path $envPath -ChildPath $firstHighestNum
     $backupNames += $firsthighestPath
     $backupNames += $secHighestPath
@@ -36,7 +36,7 @@ function removeDir($path) {
 function genListSubDir($sourPath) {
     $dirs = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $sourPath.Count; $i++){
-        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes Directory | % {$dirs.Add($_.FullName)}
+        Get-ChildItem -Path $sourPath[$i] -Recurse -Force -Attributes D | ForEach-Object {$dirs.Add($_.FullName)}
         }
     return $dirs
     }
@@ -44,7 +44,7 @@ function genListSubDir($sourPath) {
 # returns a list wish hash and filenames
 function calcHash($path) {
     $hashes = New-Object System.Collections.Generic.List[string]
-    Get-ChildItem -Path $path -Force -Attributes !D | % {$hashes.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | % {$hashes.Add($_.Hash)}
+    Get-ChildItem -Path $path -Force -Attributes !D | ForEach-Object {$hashes.Add($_.FullName); Get-FileHash $_.FullName -Algorithm SHA1} | ForEach-Object {$hashes.Add($_.Hash)}
     return $hashes
     }
 
