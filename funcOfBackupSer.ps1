@@ -55,3 +55,33 @@ function copyFile($sourcePath, $destPath, $backupType) {
 function removeFile($destPath) {
     Remove-Item -Path $destPath -Force
     }
+
+# get a list of files to copy or remove
+function getFileDiff($comparisonList, $referenceList, $cpOrRm) {
+    $cpOrRmFiles = New-Object System.Collections.Generic.List[string]
+    for ($i=0; $i -lt $comparisonList.Count; $i++){
+        $comparisonHash = calcHash $comparisonList[$i]
+        $referenceHash = calcHash $referenceList[$i]
+        for ($ii=1; $ii -lt $comparisonHash.Count; $ii+=2){
+            if ($referenceHash.count -gt 0) {
+                if (!($referenceHash.Contains($comparisonHash[$ii]))) {
+                    $cpOrRmFiles.Add($comparisonHash[$ii-1]) # source file
+                    if ($cpOrRm -eq "2"){
+                        $parent = Split-Path -Path $comparisonHash[$ii-1] -Leaf
+                        $path = Join-Path -Path $referenceList[$i] -ChildPath $parent
+                        $cpOrRmFiles.Add($path) # dest file
+                        }
+                    }
+                }
+            Else{
+                $cpOrRmFiles.Add($comparisonHash[$ii-1]) # source file
+                if ($cpOrRm -eq "2"){
+                    $parent = Split-Path -Path $comparisonHash[$ii-1] -Leaf
+                    $path = Join-Path -Path $referenceList[$i] -ChildPath $parent
+                    $cpOrRmFiles.Add($path) # dest file
+                    }
+                }
+            }
+        }
+    return $cpOrRmFiles
+}
