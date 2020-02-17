@@ -97,9 +97,9 @@ elseif ($backupType -eq "2") {
     $allDirSour = New-Object System.Collections.Generic.List[string]
     $trailer = New-Object System.Collections.Generic.List[string]
     $onetimeSubSourDir = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $sourFilePath.Count; $i++){ # for eingabe
+    for ($i=0; $i -lt $sourFilePath.Count; $i++){
         Get-ChildItem -Path $sourFilePath[$i] -Recurse -Force -Attributes D | ForEach-Object {$onetimeSubSourDir.Add($_.FullName); $allDirSour.Add($_.FullName)} # two lists of all subdir; don't add NULL values in case of error (UnauthorizedAccessException)
-        $parent = Split-Path -Path $sourFilePath[$i] -Parent # D:\; C:\Users\Tobi\Documents\Informatik\powershell
+        $parent = Split-Path -Path $sourFilePath[$i] -Parent
         for ($ii=0; $ii -lt $onetimeSubSourDir.Count; $ii++){
             $onetimeSubSourDir[$ii] -replace [regex]::escape($parent)  | ForEach-Object {$trailer.Add($_)} # replace with nothing to get just the expected ending
             }
@@ -198,5 +198,5 @@ elseif ($backupType -eq "2") {
         copyFile $cpFiles[$i] $cpFiles[$i+1] $backupType
         }
     Write-Host "`nUpdated the following Backup:"
-    Write-Host "`t->" $backupNames[0]
+    Write-Host "`t->" $backupNames
     }
