@@ -79,18 +79,17 @@ if (!(checkPathExist $envPath)) {
     Write-Host "`t-> Backup Environment created at:" $envPath
     }
 $subDirsEnv = Get-ChildItem -Path $envPath -Attributes D
-[System.Collections.Generic.List[string]]$backupNames = highestNumDirName $subDirsEnv $envPath
-
+$backupName = getBackupName $subDirsEnv $envPath $backupType
 if ($backupType -eq "1") {
-    makeDir $backupNames[0]
+    makeDir $backupName
     Write-Host "`nCopied Directories:"
     for ($i=0; $i -lt $sourFilePath.Count; $i++){
         Write-Host $i "`t-> --Copy--" $sourFilePath[$i]
         $parent = Split-Path -Path $sourFilePath[$i] -Leaf
-        $destFilePath = Join-Path -Path $backupNames[0] -ChildPath $parent
+        $destFilePath = Join-Path -Path $backupName -ChildPath $parent
         copyFile $sourFilePath[$i] $destFilePath $backupType
         }
-    Write-Host "`nNew Backup at: " $backupNames[0]
+    Write-Host "`nNew Backup at: " $backupName
     }
 elseif ($backupType -eq "2") {
     # get a list of all subdirectories at source and a list of corresponding path trailers
@@ -109,19 +108,19 @@ elseif ($backupType -eq "2") {
     # generate a list with the all full paths for the backup out of trailer and the corresponding backup
     $futureDestDir = New-Object System.Collections.Generic.List[string]
     for ($i=0; $i -lt $trailer.Count; $i++){
-        $path = Join-Path -Path $backupNames[1] -ChildPath $trailer[$i]
+        $path = Join-Path -Path $backupName -ChildPath $trailer[$i]
         $futureDestDir.Add($path)
         }
 
     # add also the the full path for the future parent paths, due they aren't included in the trailer list and therefore
     for ($i=0; $i -lt $sourFilePath.Count; $i++){
         $parent = Split-Path -Path $sourFilePath[$i] -Leaf
-        $path = Join-Path -Path $backupNames[1] -ChildPath $parent
+        $path = Join-Path -Path $backupName -ChildPath $parent
         $futureDestDir.Add($path)
         $allDirSour.Add($sourFilePath[$i])
         }
-    $backupNames.RemoveAt(0) # QuickFix: need to adjust the list due I want just a specific path for next step and my function doesn't work with '$backupNames[1]'
-    $currSubDirDest = genListSubDir $backupNames # get a list of the dir which already exist, to be able to determine which dirs can be deleted
+    $currSubDirDest = New-Object System.Collections.Generic.List[string]
+    Get-ChildItem -Path $backupName -Recurse -Force -Attributes D | ForEach-Object {$currSubDirDest.Add($_.FullName)} # get a list of the dir which already exist, to be able to determine which dirs can be deleted
 
     # create a list of dir to remove which exist in the dest Backup, but are not part of the directories which needs to be backed up
     $rmDir = New-Object System.Collections.Generic.List[string]
@@ -198,5 +197,5 @@ elseif ($backupType -eq "2") {
         copyFile $cpFiles[$i] $cpFiles[$i+1] $backupType
         }
     Write-Host "`nUpdated the following Backup:"
-    Write-Host "`t->" $backupNames
+    Write-Host "`t->" $backupName
     }
