@@ -83,5 +83,5 @@ function getFileDiff($comparisonList, $referenceList, $cpOrRm) {
                 }
             }
         }
-    return $cpOrRmFiles
+    return ,$cpOrRmFiles # , -> unary array operator
 }
