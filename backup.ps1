@@ -92,6 +92,7 @@ if ($backupType -eq "1") {
     Write-Host "`nNew Backup at: " $backupName
     }
 elseif ($backupType -eq "2") {
+
     # get a list of all subdirectories at source and a list of corresponding path trailers
     $allDirSour = New-Object System.Collections.Generic.List[string]
     $trailer = New-Object System.Collections.Generic.List[string]
@@ -147,45 +148,11 @@ elseif ($backupType -eq "2") {
         }
 
     # get list of files to remove
-    $rmFiles = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $futureDestDir.Count; $i++){
-        $subSourDirHash = calcHash $allDirSour[$i]
-        $futureDestDirHash = calcHash $futureDestDir[$i]
-        for ($ii=1; $ii -lt $futureDestDirHash.Count; $ii+=2){
-            if ($subSourDirHash.count -gt 0) {
-                if (!($subSourDirHash.Contains($futureDestDirHash[$ii]))) {
-                    $rmFiles.Add($futureDestDirHash[$ii-1])
-                    }
-                }
-            Else{
-                $rmFiles.Add($futureDestDirHash[$ii-1])
-                }
-            }
-        }
+    $rmFiles = getFileDiff $futureDestDir $allDirSour 1
 
     # get list of files to copy
-    $cpFiles = New-Object System.Collections.Generic.List[string]
-    for ($i=0; $i -lt $allDirSour.Count; $i++){
-        $subSourDirHash = calcHash $allDirSour[$i]
-        $futureDestDirHash = calcHash $futureDestDir[$i]
-        for ($ii=1; $ii -lt $subSourDirHash.Count; $ii+=2){
-            if ($futureDestDirHash.count -gt 0) {
-                if (!($futureDestDirHash.Contains($subSourDirHash[$ii]))) {
-                    $cpFiles.Add($subSourDirHash[$ii-1]) # source file
-                    $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
-                    $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
-                    $cpFiles.Add($path) # dest file
-                    }
-                }
-            Else{
-                $cpFiles.Add($subSourDirHash[$ii-1])
-                $parent = Split-Path -Path $subSourDirHash[$ii-1] -Leaf
-                $path = Join-Path -Path $futureDestDir[$i] -ChildPath $parent
-                $cpFiles.Add($path)
-                }
-            }
-        }
-
+    $cpFiles = getFileDiff $allDirSour $futureDestDir 2
+    
     # File synchronization (remove and copy files)
     Write-Host "`nFile synchronization:"
     for ($i=0; $i -lt $rmFiles.Count; $i++){
